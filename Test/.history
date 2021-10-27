@@ -1,0 +1,20 @@
+ls
+cd Test
+ls
+cd ..
+ls
+cd Test
+ls
+cd ..
+ls
+pwd
+exit
+exit
+Hello
+l
+ls
+echo hello
+echo fuck you
+exit
+history
+exit

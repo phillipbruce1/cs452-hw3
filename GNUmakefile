@@ -1,14 +1,24 @@
-prog=shell
+prog?=$(basename $(notdir $(PWD)))
+objs+=$(addsuffix .o,$(basename $(wildcard *.c *.cc)))
 
-ldflags:=-lreadline -lncurses
+defines+=-D_GNU_SOURCE
+ccflags+=-g -Wall -MMD $(defines)
+ldflags+=-g
 
-include ../GNUmakefile
+.SUFFIXES:
 
-try: $(objs) libdeq.so
-	gcc -o $@ $(objs) $(ldflags) -L. -ldeq -Wl,-rpath=.
+%.o: %.c  ; gcc -o $@ -c $< $(ccflags)
+%.i: %.c  ; gcc -o $@ -E $< $(defines)
+%.o: %.cc ; g++ -o $@ -c $< $(ccflags)
+%.i: %.cc ; g++ -o $@ -E $< $(defines)
 
-trytest: try
-	Test/run
+$(prog): $(objs) ; g++ -o $@ $^ $(ldflags)
 
-test: $(prog)
-	Test/run
+.PHONY: clean run valgrind
+
+clean: ; rm -f $(prog) *.o *.d *.i
+
+run:      $(prog) ; ./$< $(args)
+valgrind: $(prog) ; $@ --leak-check=full --show-leak-kinds=all ./$< $(args)
+
+sinclude *.d
