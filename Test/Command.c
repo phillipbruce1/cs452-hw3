@@ -53,6 +53,8 @@ BIDEFN(cd) {
     ERROR("chdir() failed"); // warn
 }
 
+// TODO: add history command using BIDEFN macro
+
 static int builtin(BIARGS) {
   typedef struct {
     char *s;
