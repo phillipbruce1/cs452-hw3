@@ -143,13 +143,10 @@ static void f_word(T_word t) {
 }
 
 static void f_redir(T_redir t) {
-    printf("F_REDIR\n");
     if (!t)
         return;
     f_word(t->word);
-    printf("F_WORD DONE\n");
     free(t);
-    printf("F_REDIR SUCCESSFUL\n");
 }
 
 static void f_words(T_words t) {
