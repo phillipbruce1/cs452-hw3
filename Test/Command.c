@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "Command.h"
 #include "error.h"
@@ -9,6 +10,7 @@
 typedef struct {
     char *file;
     char **argv;
+    T_redir redir;
 } *CommandRep;
 
 typedef struct _hist_entry {
@@ -29,6 +31,15 @@ static void builtin_args(CommandRep r, int n) {
     for (n++; *argv++; n--);
     if (n)
         ERROR("wrong number of arguments to builtin command"); // warn
+}
+
+static void outputToFile(char *file) {
+    int fd = open(file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    if (fd < 0 || dup2(fd, 1) < 0) {
+        ERROR("Failed to open file for redirection");
+        exit(0);
+    }
+    close(fd);
 }
 
 BIDEFN(exit) {
@@ -59,13 +70,13 @@ BIDEFN(cd) {
 }
 
 BIDEFN(history) {
-        builtin_args(r, 0);
-        register HIST_ENTRY **list;
-        list = history_list();
-        if (list) {
-            for (int i = 0; list[i]; i++)
-                printf("%s\n", list[i]->line);
-        }
+    builtin_args(r, 0);
+    register HIST_ENTRY **list;
+    list = history_list();
+    if (list) {
+        for (int i = 0; list[i]; i++)
+            printf("%s\n", list[i]->line);
+    }
 }
 
 static int builtin(BIARGS) {
@@ -84,7 +95,14 @@ static int builtin(BIARGS) {
     int i;
     for (i = 0; builtins[i].s; i++)
         if (!strcmp(r->file, builtins[i].s)) {
-            builtins[i].f(r, eof, jobs);
+            if (i != 0 && i != 2 && r->redir) {
+                int stdout_copy = dup(STDOUT_FILENO);
+                if (!strcmp(r->redir->redir, ">"))
+                    outputToFile(r->redir->word->s);
+                builtins[i].f(r, eof, jobs);
+                dup2(stdout_copy, 1);
+            } else
+                builtins[i].f(r, eof, jobs);
             return 1;
         }
     return 0;
@@ -110,12 +128,15 @@ static char **getargs(T_words words) {
     return argv;
 }
 
-extern Command newCommand(T_words words) {
+extern Command newCommand(T_words words, T_redir redir) {
     CommandRep r = (CommandRep) malloc(sizeof(*r));
     if (!r)
         ERROR("malloc() failed");
     r->argv = getargs(words);
     r->file = r->argv[0];
+    if (redir) {
+        r->redir = redir;
+    }
     return r;
 }
 
@@ -124,6 +145,9 @@ static void child(CommandRep r, int fg) {
     Jobs jobs = newJobs();
     if (builtin(r, &eof, jobs))
         return;
+    if (r->redir)
+        if (!strcmp(r->redir->redir, ">"))
+            outputToFile(r->redir->word->s);
     execvp(r->argv[0], r->argv);
     ERROR("execvp() failed");
     exit(0);
