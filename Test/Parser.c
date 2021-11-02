@@ -18,6 +18,7 @@ static int   cmp(char *s) { return cmpScanner(scan,s); }
 static int   eat(char *s) { return eatScanner(scan,s); }
 
 static T_word p_word();
+static T_redir p_redir();
 static T_words p_words();
 static T_command p_command();
 static T_pipeline p_pipeline();
@@ -31,6 +32,22 @@ static T_word p_word() {
   word->s=strdup(s);
   next();
   return word;
+}
+
+static T_redir p_redir() {
+    if (eat("<")) {
+        T_redir redir = new_redir();
+        redir->redir = "<";
+        redir->word = p_word();
+        return redir;
+    } else if (eat(">")) {
+        T_redir redir = new_redir();
+        redir->redir = ">";
+        redir->word = p_word();
+        return redir;
+    } else
+        eat("^");
+    return 0;
 }
 
 static T_words p_words() {
@@ -52,6 +69,9 @@ static T_command p_command() {
     return 0;
   T_command command=new_command();
   command->words=words;
+  T_redir redir = p_redir();
+  if (redir)
+      command->redir = redir;
   return command;
 }
 

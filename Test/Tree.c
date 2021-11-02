@@ -14,4 +14,5 @@ extern T_sequence new_sequence() {ALLOC(T_sequence)}
 extern T_pipeline new_pipeline() {ALLOC(T_pipeline)}
 extern T_command  new_command()  {ALLOC(T_command)}
 extern T_words    new_words()    {ALLOC(T_words)}
+extern T_redir    new_redir()    {ALLOC(T_redir)}
 extern T_word     new_word()     {ALLOC(T_word)}

@@ -11,6 +11,11 @@ typedef struct {
     char **argv;
 } *CommandRep;
 
+typedef struct _hist_entry {
+    char *line;
+    char *data;
+} HIST_ENTRY;
+
 #define BIARGS CommandRep r, int *eof, Jobs jobs
 #define BINAME(name) bi_##name
 #define BIDEFN(name) static void BINAME(name) (BIARGS)
@@ -53,18 +58,14 @@ BIDEFN(cd) {
         ERROR("chdir() failed"); // warn
 }
 
-// TODO: add history command using BIDEFN macro
-typedef struct _hist_entry {
-    char *line;
-    char *data;
-} HIST_ENTRY;
-
-BIDFEN(history) {
+BIDEFN(history) {
+        builtin_args(r, 0);
         register HIST_ENTRY **list;
         list = history_list();
-        if (list)
-        for (int i = 0; list[i]; i++)
-        printf("%s\n", list[i]->line);
+        if (list) {
+            for (int i = 0; list[i]; i++)
+                printf("%s\n", list[i]->line);
+        }
 }
 
 static int builtin(BIARGS) {
