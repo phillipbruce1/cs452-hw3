@@ -42,6 +42,15 @@ static void outputToFile(char *file) {
     close(fd);
 }
 
+static void inputFromFile(char *file) {
+    int fd = open(file, O_RDONLY);
+    if (fd < 0 || dup2(fd, 0) < 0) {
+        ERROR("Failed to open file for redirection");
+        exit(0);
+    }
+    close(fd);
+}
+
 BIDEFN(exit) {
     builtin_args(r, 0);
     *eof = 1;
@@ -97,10 +106,14 @@ static int builtin(BIARGS) {
         if (!strcmp(r->file, builtins[i].s)) {
             if (i != 0 && i != 2 && r->redir) {
                 int stdout_copy = dup(STDOUT_FILENO);
+                int stdin_copy = dup(STDIN_FILENO);
                 if (!strcmp(r->redir->redir, ">"))
                     outputToFile(r->redir->word->s);
+                if (!strcmp(r->redir->redir, "<"))
+                    inputFromFile(r->redir->word->s);
                 builtins[i].f(r, eof, jobs);
                 dup2(stdout_copy, 1);
+                dup2(stdin_copy, 0);
             } else
                 builtins[i].f(r, eof, jobs);
             return 1;
@@ -145,9 +158,12 @@ static void child(CommandRep r, int fg) {
     Jobs jobs = newJobs();
     if (builtin(r, &eof, jobs))
         return;
-    if (r->redir)
+    if (r->redir) {
         if (!strcmp(r->redir->redir, ">"))
             outputToFile(r->redir->word->s);
+        else if (!strcmp(r->redir->redir, "<"))
+            inputFromFile(r->redir->word->s);
+    }
     execvp(r->argv[0], r->argv);
     ERROR("execvp() failed");
     exit(0);
