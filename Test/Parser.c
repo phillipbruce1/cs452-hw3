@@ -49,6 +49,13 @@ static T_redir p_redir() {
         T_redir redir = new_redir();
         redir->redir = "<";
         redir->word = p_word();
+        if (eat(">")) {
+            redir->redir1 = ">";
+            redir->word1 = p_word();
+        } else {
+            redir->redir1 = 0;
+            redir->word1 = 0;
+        }
         return redir;
     } else if (eat(">")) {
         T_redir redir = new_redir();

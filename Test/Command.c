@@ -109,8 +109,11 @@ static int builtin(BIARGS) {
                 int stdin_copy = dup(STDIN_FILENO);
                 if (!strcmp(r->redir->redir, ">"))
                     outputToFile(r->redir->word->s);
-                if (!strcmp(r->redir->redir, "<"))
+                if (!strcmp(r->redir->redir, "<")) {
                     inputFromFile(r->redir->word->s);
+                    if (r->redir->redir1 && !strcmp(r->redir->redir1, ">"))
+                        outputToFile(r->redir->word1->s);
+                }
                 builtins[i].f(r, eof, jobs);
                 dup2(stdout_copy, 1);
                 dup2(stdin_copy, 0);
@@ -161,8 +164,12 @@ static void child(CommandRep r, int fg) {
     if (r->redir) {
         if (!strcmp(r->redir->redir, ">"))
             outputToFile(r->redir->word->s);
-        else if (!strcmp(r->redir->redir, "<"))
+        else if (!strcmp(r->redir->redir, "<")) {
             inputFromFile(r->redir->word->s);
+            if (r->redir->redir1 && !strcmp(r->redir->redir1, ">")) {
+                outputToFile(r->redir->word1->s);
+            }
+        }
     }
     execvp(r->argv[0], r->argv);
     ERROR("execvp() failed");
