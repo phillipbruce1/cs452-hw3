@@ -6,6 +6,7 @@
 
 #include "Command.h"
 #include "error.h"
+#include "deq.h"
 
 typedef struct {
     char *file;
@@ -17,6 +18,11 @@ typedef struct _hist_entry {
     char *line;
     char *data;
 } HIST_ENTRY;
+
+typedef struct {
+    Deq processes;
+    int fg;			// not "&"
+} *PipelineRep;
 
 #define BIARGS CommandRep r, int *eof, Jobs jobs
 #define BINAME(name) bi_##name
@@ -30,7 +36,7 @@ static void builtin_args(CommandRep r, int n) {
     char **argv = r->argv;
     for (n++; *argv++; n--);
     if (n)
-        ERROR("wrong number of arguments to builtin command"); // warn
+        ERROR("wrong number of arguments to builtin command");
 }
 
 static void outputToFile(char *file) {
@@ -190,6 +196,8 @@ extern void execCommand(Command command, Pipeline pipeline, Jobs jobs,
         ERROR("fork() failed");
     if (pid == 0)
         child(r, fg);
+    if (fg == 1)
+        wait(NULL);
 }
 
 extern void freeCommand(Command command) {
